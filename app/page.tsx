@@ -1,10 +1,9 @@
-import { ExcelUpload } from "@/components/excel-upload";
-import Image from "next/image";
+import ExcelReader from "@/components/excel-reader";
 
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <ExcelUpload />
+      <ExcelReader />
     </main>
   );
 }

@@ -11,36 +11,47 @@ import { PersonTable } from "./person-table";
 export function ExcelUpload() {
   const [fileName, setFileName] = useState("No file selected");
   const [fileData, setFileData] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const workbook = read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = utils.sheet_to_json(worksheet);
-        setFileData(jsonData);
-      };
-      reader.readAsArrayBuffer(file);
+  
+      const formData = new FormData();
+      formData.append('file', file);
+  
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to upload file');
+        }
+  
+        const result = await response.json();
+        console.log(result); // Log to debug
+        setFileData(result.data || []);
+      } catch (error) {
+        console.error('Error uploading file:', error);
+      }
     }
   };
-
+  
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Upload Excel File</CardTitle>
-        <CardDescription>Select an Excel file to read and process its contents.</CardDescription>
+        <CardDescription>Select an Excel or CSV file to read and process its contents.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between space-x-4">
           <Label htmlFor="file" className="flex-1 cursor-pointer">
             <div className="flex items-center justify-center space-x-2 rounded-md border border-dashed border-input px-6 py-10 text-center">
               <UploadIcon className="h-6 w-6 text-muted-foreground" />
-              <span className="font-medium text-muted-foreground">Select Excel File</span>
+              <span className="font-medium text-muted-foreground">Select Excel or CSV File</span>
             </div>
             <Input id="file" type="file" accept=".xlsx,.xls,.csv" className="sr-only" onChange={handleFileChange} required />
           </Label>
@@ -49,10 +60,8 @@ export function ExcelUpload() {
           <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
             <span className="font-medium">{fileName}</span>
           </div>
-          <Button variant="outline" disabled={!fileData.length} onClick={() => setFileData(fileData)}>
-            View Contents
-          </Button>
         </div>
+        {error && <div className="text-red-500">{error}</div>}
         {fileData.length > 0 && <PersonTable data={fileData} />}
       </CardContent>
     </Card>
